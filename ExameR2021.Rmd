@@ -1,0 +1,112 @@
+---
+title: "ExameR2021"
+author: "Daniel"
+date: "2023-07-08"
+output: html_document
+---
+
+```{r}
+#Lendo os dados direto do link
+url = "http://leg.ufpr.br/~walmes/data/ninfas.txt"
+ninfas = read.delim(url)
+```
+
+```{r}
+#Carregando o tidyverse para usar o dplyr, tidyr e ggplot
+library(tidyverse)
+```
+
+```{r}
+#Separando a data em 3 colunas pra poder selecionar o mes mais facilmente
+ninfas = separate(ninfas, col = data, into = c("ano", "mes", "dia"), sep = "-")
+```
+
+Questão 2:
+a)
+
+```{r}
+#Criando um novo dataframe pra ser usado na questao 2, o primeiro filtro pega somente os meses
+#1 e 12 e o segundo filtro apenas o bloco 1. Após isso, como existem várias observações em um mesmo mês,
+#optei por escolher apenas as observações dos dias 11 de cada mês, isso se dá pelo filtro para o dia 11.
+#Finalmente, o último filtro cria uma coluna total que é a soma das colunas superior, medio e inferior.
+ninfasQuestaoA = ninfas %>% filter(mes %in% c("12", "01")) %>% filter(bloco == 1) %>%
+  filter(dia == "11") %>% mutate(Total = superior+medio+inferior)
+
+#Transforma a coluna mês em um inteiro para permitir a construção do grafico de linhas
+ninfasQuestaoA$mes <- as.integer(ninfasQuestaoA$mes)
+
+#Cria o grafico de linhas e pontos, separando a cor pela variedade
+plotQuestaoA = ggplot(ninfasQuestaoA, aes(x = mes, y = Total, color = variedade))+
+  geom_line()+
+  geom_point()+
+  #Essa ultima linha é só pra deixar o nome dos eixos bonitos
+  labs(x = "Mes", y = "Ninfas")
+
+plotQuestaoA 
+```
+É possível ver que a variedade BRS 245 RR possui o maior valor nos meses de dezembro, além da maior média geral entre janeiro e dezembro, então essa variedade é a mais prejudicada. 
+Analogamente, a variedade VMAX RR tem o menor valor em janeiro e a menor média geral entre janeiro e dezembro, então é a menos prejudicada.
+
+```{r}
+#Justificando o que foi dito acima com uma tabela, agrupada por variedade, faço a média do total 
+#Entre os meses 1 e 12 e depois ordeno a tabela pela média calculada
+ninfasQuestaoA %>% group_by(variedade) %>% summarise(media = mean(Total)) %>% arrange(-media)
+```
+
+Questão 2:
+
+b)
+
+```{r}
+#Outro dataframe para a questaoB, excluo as 3 primeiras colunas de "ninfas" para deixar o resultado final mais resumido
+#Depois, agrupo por variedade e bloco e novamente faço a media da soma de superior, medio e inferior
+ninfasQuestaoB = ninfas[,4:ncol(ninfas)] %>% group_by(variedade, bloco) %>% mutate(media = mean(c(superior, medio, inferior)))
+  
+#Note que o dataframe repete as mesmas informações 6 vezes por causa do jeito que os dados estao escritos
+ninfasQuestaoB
+```
+
+```{r}
+#Cria um vetor vazio
+mais_sensivel = vector()
+#Um for de 1 a 4 para escolher o máximo de cada bloco individualmente
+for(n in 1:4){
+  #Escolhe o bloco
+  df_auxiliar = ninfasQuestaoB %>% filter(bloco == n)
+  #Pega apenas as 10 primeiras observações (que se repetem 6 vezes, como foi dito antes)
+  #E ordena elas pela media, em ordem decrescente
+  df_auxiliar = df_auxiliar[1:10,] %>% arrange(-media)
+  #Adiciona o primeiro elemento do dataframe, contendo o nome da variedade com maior media para aquele bloco,
+  #Ao vetor criado. No final, o vetor vai ter o nome das 4 variedades mais afetadas em cada bloco.
+  mais_sensivel = c(mais_sensivel, df_auxiliar[1,1]) |> unlist()
+}
+#transforma o vetor em dataframe e transpõe ele, daqui pra baixo é tudo pra apresentar os resultados de um jeito
+#mais bonito.
+mais_sensivel = as.data.frame(mais_sensivel) |> t()
+#muda o nome das colunas para "bloco1", "bloco2", etc.
+colnames(mais_sensivel) = paste0("bloco", 1:4)
+
+mais_sensivel
+```
+Então, as variedades mais sensíveis são:
+BRS 245 RR, CD 219 RR, CD 214 RR, CD 214 RR
+Para os blocos 1,2,3 e 4, respectivamente.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
